@@ -1,5 +1,6 @@
 # 轻量级 Open WebUI - 专为写作助手优化
-FROM node:20-alpine AS frontend-builder  # 升级到 Node.js 20
+# 升级到 Node.js 20
+FROM node:20-alpine AS frontend-builder
 
 # 设置内存限制
 ENV NODE_OPTIONS="--max_old_space_size=400"
