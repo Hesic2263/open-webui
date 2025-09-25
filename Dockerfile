@@ -1,5 +1,5 @@
 # 轻量级 Open WebUI - 专为写作助手优化
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder  # 升级到 Node.js 20
 
 # 设置内存限制
 ENV NODE_OPTIONS="--max_old_space_size=400"
@@ -10,18 +10,18 @@ WORKDIR /app
 # 复制 package 文件
 COPY package.json package-lock.json ./
 
-# 安装所有依赖（包括开发依赖，因为构建需要vite）
-RUN npm cache clean --force && \
+# 彻底清理并安装依赖
+RUN rm -rf node_modules package-lock.json && \
+    npm cache clean --force && \
+    npm install vite --save-dev && \
     npm install --legacy-peer-deps --no-audit --no-fund
 
 # 复制源码并构建
 COPY . .
-RUN npm run build
+RUN npx vite build  # 使用 npx 明确调用 vite
 
 # 后端 Python 环境
 FROM python:3.11-alpine
-
-# 设置工作目录
 WORKDIR /app
 
 # 安装系统依赖
@@ -34,7 +34,7 @@ RUN apk add --no-cache \
 # 复制后端 requirements
 COPY ./backend/requirements.txt ./
 
-# 安装 Python 依赖（仅核心包）
+# 安装 Python 依赖
 RUN pip3 install --no-cache-dir \
     fastapi==0.104.1 \
     uvicorn==0.24.0 \
@@ -61,15 +61,10 @@ ENV OPENAI_API_KEY=""
 ENV OPENAI_BASE_URL=""
 ENV DEFAULT_MODEL="deepseek-chat"
 
-# 创建必要目录
 RUN mkdir -p /app/backend/data
-
-# 暴露端口
 EXPOSE 8080
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# 启动命令
 CMD ["python3", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
