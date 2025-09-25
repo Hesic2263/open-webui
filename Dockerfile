@@ -10,9 +10,9 @@ WORKDIR /app
 # 复制 package 文件
 COPY package.json package-lock.json ./
 
-# 清理缓存并安装依赖（解决版本冲突）
+# 安装所有依赖（包括开发依赖，因为构建需要vite）
 RUN npm cache clean --force && \
-    npm install --production --omit=dev --legacy-peer-deps --no-audit --no-fund
+    npm install --legacy-peer-deps --no-audit --no-fund
 
 # 复制源码并构建
 COPY . .
