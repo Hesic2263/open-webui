@@ -9,6 +9,8 @@ WORKDIR /app
 
 # 复制 package 文件
 COPY package.json package-lock.json ./
+
+# 使用 npm install 代替 npm ci（避免锁文件冲突）
 RUN npm install --only=production --no-audit --no-fund
 
 # 复制源码并构建
