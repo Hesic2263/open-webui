@@ -10,8 +10,9 @@ WORKDIR /app
 # 复制 package 文件
 COPY package.json package-lock.json ./
 
-# 使用 npm install 代替 npm ci（避免锁文件冲突）
-RUN npm install --only=production --no-audit --no-fund
+# 清理缓存并安装依赖（解决版本冲突）
+RUN npm cache clean --force && \
+    npm install --production --omit=dev --legacy-peer-deps --no-audit --no-fund
 
 # 复制源码并构建
 COPY . .
@@ -33,19 +34,16 @@ RUN apk add --no-cache \
 # 复制后端 requirements
 COPY ./backend/requirements.txt ./
 
-# 安装 Python 依赖
-RUN pip3 install --no-cache-dir uv && \
-    uv pip install --system --no-cache-dir \
-    fastapi \
-    uvicorn \
-    pydantic \
-    python-multipart \
-    jinja2 \
-    aiofiles \
-    sqlalchemy \
-    alembic \
-    psycopg2-binary \
-    && uv pip install --system --no-cache-dir -r requirements.txt
+# 安装 Python 依赖（仅核心包）
+RUN pip3 install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn==0.24.0 \
+    pydantic==2.5.0 \
+    python-multipart==0.0.6 \
+    jinja2==3.1.2 \
+    aiofiles==23.2.1 \
+    sqlalchemy==2.0.23 \
+    alembic==1.12.1
 
 # 复制前端构建结果
 COPY --from=frontend-builder /app/build ./build
