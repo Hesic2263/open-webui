@@ -1,4 +1,4 @@
-# Open WebUI - 终极修复版本（解决 package-lock.json 问题）
+# Open WebUI - 终极修复版本（修正语法错误）
 FROM node:20-alpine AS frontend-builder
 
 # 设置内存限制
@@ -9,16 +9,16 @@ WORKDIR /app
 # 安装系统工具
 RUN apk add --no-cache git python3 make g++
 
-# 修复：明确复制 package.json 和 package-lock.json（移除通配符）
+# 修复：明确复制 package.json 和 package-lock.json
 COPY package.json package-lock.json ./
 
-# 安装依赖（使用 npm ci 确保依赖一致性）
+# 安装依赖
 RUN npm ci --legacy-peer-deps
 
 # 复制源码
 COPY . .
 
-# 🔧 创建修复脚本
+# 🔧 创建修复脚本 - 修正 heredoc 语法
 RUN cat > fix-utils.js << 'EOF'
 const fs = require('fs');
 const path = require('path');
@@ -43,8 +43,8 @@ export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const sanitizeResponseContent = (content) => {
     return content
-        .replace(/<\\|[a-z]*$/, '')
-        .replace(/<\\|[a-z]+\\|$/, '')
+        .replace(/<\\\\|[a-z]*$/, '')
+        .replace(/<\\\\|[a-z]+\\\\|$/, '')
         .replace(/<$/, '')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
