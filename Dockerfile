@@ -1,17 +1,19 @@
-# 轻量级 Open WebUI - 专为写作助手优化
+# 轻量级 Open WebUI - 专注于内存优化
 FROM node:20-alpine AS frontend-builder
 
+# 设置内存限制
 ENV NODE_OPTIONS="--max_old_space_size=400"
 ENV NODE_ENV=production
 WORKDIR /app
 
-# 安装 git（解决构建警告）
-RUN apk add --no-cache git
+# 安装必要的系统工具
+RUN apk add --no-cache git python3 make g++
 
 # 复制 package 文件
 COPY package.json package-lock.json* ./
 
-# 安装依赖
+# 分步骤安装依赖（减少单步内存使用）
+RUN npm install --production --legacy-peer-deps
 RUN npm install --include=dev --legacy-peer-deps
 
 # 复制源码
@@ -20,9 +22,8 @@ COPY . .
 # 生成必要的配置文件
 RUN npx svelte-kit sync
 
-# 构建前端（增加重试机制）
-RUN node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build || \
-    (echo "第一次构建失败，重试..." && node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build)
+# 分阶段构建（减少内存峰值）
+RUN node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build --mode production
 
 # 后端 Python 环境
 FROM python:3.11-alpine
