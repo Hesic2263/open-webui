@@ -5,13 +5,10 @@ ENV NODE_OPTIONS="--max_old_space_size=400"
 ENV NODE_ENV=production
 WORKDIR /app
 
-# 安装必要的系统工具
-RUN apk add --no-cache git python3 make g++
-
 # 复制 package 文件
 COPY package.json package-lock.json* ./
 
-# 安装依赖
+# 安装依赖（简化步骤）
 RUN npm install --include=dev --legacy-peer-deps
 
 # 复制源码
