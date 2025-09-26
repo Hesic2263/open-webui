@@ -1,4 +1,4 @@
-# 轻量级 Open WebUI - 专注于内存优化
+# 轻量级 Open WebUI - 专注于内存优化 + PDF.js修复
 FROM node:20-alpine AS frontend-builder
 
 # 设置内存限制
