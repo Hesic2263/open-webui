@@ -1,4 +1,4 @@
-# Open WebUI - 终极修复版本（修正语法错误）
+# Open WebUI - 完全安全版本（无 heredoc 语法）
 FROM node:20-alpine AS frontend-builder
 
 # 设置内存限制
@@ -9,7 +9,7 @@ WORKDIR /app
 # 安装系统工具
 RUN apk add --no-cache git python3 make g++
 
-# 修复：明确复制 package.json 和 package-lock.json
+# 复制 package 文件
 COPY package.json package-lock.json ./
 
 # 安装依赖
@@ -18,54 +18,33 @@ RUN npm ci --legacy-peer-deps
 # 复制源码
 COPY . .
 
-# 🔧 创建修复脚本 - 修正 heredoc 语法
-RUN cat > fix-utils.js << 'EOF'
-const fs = require('fs');
-const path = require('path');
-
-const filePath = path.join(__dirname, 'src/lib/utils/index.ts');
-console.log('修复文件:', filePath);
-
-// 创建安全的简化版本
-const safeContent = `// 安全简化版本 - 修复构建错误
-import { v4 as uuidv4 } from 'uuid';
-import sha256 from 'js-sha256';
-import { WEBUI_BASE_URL } from '$lib/constants';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-
-dayjs.extend(relativeTime);
-
-// PDF功能已禁用
-const pdfWorkerUrl = '';
-
-export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const sanitizeResponseContent = (content) => {
-    return content
-        .replace(/<\\\\|[a-z]*$/, '')
-        .replace(/<\\\\|[a-z]+\\\\|$/, '')
-        .replace(/<$/, '')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .trim();
-};
-
-export const sleepAsync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-`;
-
-// 确保目录存在
-const dir = path.dirname(filePath);
-if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-}
-
-fs.writeFileSync(filePath, safeContent);
-console.log('文件修复完成');
-EOF
-
-# 执行修复
-RUN node fix-utils.js
+# 🔧 直接创建修复文件（避免 heredoc）
+RUN mkdir -p src/lib/utils && \
+    echo "// 安全简化版本 - 修复构建错误" > src/lib/utils/index.ts && \
+    echo "import { v4 as uuidv4 } from 'uuid';" >> src/lib/utils/index.ts && \
+    echo "import sha256 from 'js-sha256';" >> src/lib/utils/index.ts && \
+    echo "import { WEBUI_BASE_URL } from '\$lib/constants';" >> src/lib/utils/index.ts && \
+    echo "import dayjs from 'dayjs';" >> src/lib/utils/index.ts && \
+    echo "import relativeTime from 'dayjs/plugin/relativeTime';" >> src/lib/utils/index.ts && \
+    echo "" >> src/lib/utils/index.ts && \
+    echo "dayjs.extend(relativeTime);" >> src/lib/utils/index.ts && \
+    echo "" >> src/lib/utils/index.ts && \
+    echo "// PDF功能已禁用" >> src/lib/utils/index.ts && \
+    echo "const pdfWorkerUrl = '';" >> src/lib/utils/index.ts && \
+    echo "" >> src/lib/utils/index.ts && \
+    echo "export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));" >> src/lib/utils/index.ts && \
+    echo "" >> src/lib/utils/index.ts && \
+    echo "export const sanitizeResponseContent = (content) => {" >> src/lib/utils/index.ts && \
+    echo "    return content" >> src/lib/utils/index.ts && \
+    echo "        .replace(/<\\\\|[a-z]*\$/, '')" >> src/lib/utils/index.ts && \
+    echo "        .replace(/<\\\\|[a-z]+\\\\|\$/, '')" >> src/lib/utils/index.ts && \
+    echo "        .replace(/<\$/, '')" >> src/lib/utils/index.ts && \
+    echo "        .replaceAll('<', '&lt;')" >> src/lib/utils/index.ts && \
+    echo "        .replaceAll('>', '&gt;')" >> src/lib/utils/index.ts && \
+    echo "        .trim();" >> src/lib/utils/index.ts && \
+    echo "};" >> src/lib/utils/index.ts && \
+    echo "" >> src/lib/utils/index.ts && \
+    echo "export const sleepAsync = (ms) => new Promise(resolve => setTimeout(resolve, ms));" >> src/lib/utils/index.ts
 
 # 同步配置
 RUN npx svelte-kit sync
