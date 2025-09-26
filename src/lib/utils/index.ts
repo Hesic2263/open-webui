@@ -33,26 +33,26 @@ function escapeRegExp(string: string): string {
  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export const replaceTokens = (content, sourceIds, char, user) => {
+export const replaceTokens = (content: any, sourceIds: any, char: any, user: any) => {
  const tokens = [
   { regex: /{{char}}/gi, replacement: char },
   { regex: /{{user}}/gi, replacement: user },
   {
    regex: /{{VIDEO_FILE_ID_([a-f0-9-]+)}}/gi,
-   replacement: (_, fileId) =>
+   replacement: (_: any, fileId: any) =>
     <video src="${WEBUI_BASE_URL}/api/v1/files/${fileId}/content" controls></video>
   },
   {
    regex: /{{HTML_FILE_ID_([a-f0-9-]+)}}/gi,
-   replacement: (_, fileId) => <file type="html" id="${fileId}" />
+   replacement: (_: any, fileId: any) => <file type="html" id="${fileId}" />
   }
  ];
 
  // Replace tokens outside code blocks only
- const processOutsideCodeBlocks = (text, replacementFn) => {
+ const processOutsideCodeBlocks = (text: any, replacementFn: any) => {
   return text
    .split(/(```[\s\S]*?```|`[\s\S]*?`)/)
-   .map((segment) => {
+   .map((segment: any) => {
     return segment.startsWith('```') || segment.startsWith('`')
      ? segment
      : replacementFn(segment);
@@ -61,7 +61,7 @@ export const replaceTokens = (content, sourceIds, char, user) => {
  };
 
  // Apply replacements
- content = processOutsideCodeBlocks(content, (segment) => {
+ content = processOutsideCodeBlocks(content, (segment: any) => {
   tokens.forEach(({ regex, replacement }) => {
    if (replacement !== undefined && replacement !== null) {
     segment = segment.replace(regex, replacement);
@@ -69,7 +69,7 @@ export const replaceTokens = (content, sourceIds, char, user) => {
   });
 
   if (Array.isArray(sourceIds)) {
-   sourceIds.forEach((sourceId, idx) => {
+   sourceIds.forEach((sourceId: any, idx: number) => {
     const regex = new RegExp(`\\[${idx + 1}\\]`, 'g');
     segment = segment.replace(
      regex,
@@ -175,26 +175,26 @@ export function unescapeHtml(html: string) {
  return doc.documentElement.textContent;
 }
 
-export const capitalizeFirstLetter = (string) => {
+export const capitalizeFirstLetter = (string: string) => {
  return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-export const splitStream = (splitOn) => {
+export const splitStream = (splitOn: string) => {
  let buffer = '';
  return new TransformStream({
-  transform(chunk, controller) {
+  transform(chunk: string, controller: any) {
    buffer += chunk;
    const parts = buffer.split(splitOn);
    parts.slice(0, -1).forEach((part) => controller.enqueue(part));
    buffer = parts[parts.length - 1];
   },
-  flush(controller) {
+  flush(controller: any) {
    if (buffer) controller.enqueue(buffer);
   }
  });
 };
 
-export const convertMessagesToHistory = (messages) => {
+export const convertMessagesToHistory = (messages: any) => {
  const history = {
   messages: {},
   currentId: null
@@ -207,13 +207,13 @@ export const convertMessagesToHistory = (messages) => {
   messageId = uuidv4();
 
   if (parentMessageId !== null) {
-   history.messages[parentMessageId].childrenIds = [
-    ...history.messages[parentMessageId].childrenIds,
+   (history.messages as any)[parentMessageId].childrenIds = [
+    ...(history.messages as any)[parentMessageId].childrenIds,
     messageId
    ];
   }
 
-  history.messages[messageId] = {
+  (history.messages as any)[messageId] = {
    ...message,
    id: messageId,
    parentId: parentMessageId,
@@ -227,7 +227,7 @@ export const convertMessagesToHistory = (messages) => {
  return history;
 };
 
-export const getGravatarURL = (email) => {
+export const getGravatarURL = (email: string) => {
  // Trim leading and trailing whitespace from
  // an email address and force all characters
  // to lower case
@@ -281,7 +281,7 @@ export const canvasPixelTest = () => {
  return true;
 };
 
-export const compressImage = async (imageUrl, maxWidth, maxHeight) => {
+export const compressImage = async (imageUrl: string, maxWidth: number, maxHeight: number) => {
  return new Promise((resolve, reject) => {
   const img = new Image();
   img.onload = () => {
@@ -338,12 +338,12 @@ export const compressImage = async (imageUrl, maxWidth, maxHeight) => {
    const compressedUrl = canvas.toDataURL();
    resolve(compressedUrl);
   };
-  img.onerror = (error) => reject(error);
+  img.onerror = (error: any) => reject(error);
   img.src = imageUrl;
  });
 };
 
-export const generateInitialsImage = (name) => {
+export const generateInitialsImage = (name: string) => {
  const canvas = document.createElement('canvas');
  const ctx = canvas.getContext('2d');
  canvas.width = 100;
@@ -351,10 +351,4 @@ export const generateInitialsImage = (name) => {
 
  if (!canvasPixelTest()) {
   console.log(
-   'generateInitialsImage: failed pixel test, fingerprint evasion is likely. Using default image.'
-  );
-  return `${WEBUI_BASE_URL}/user.png`;
- }
-
- ctx.fillStyle = '#F39C12';
- ctx.fillRect(0, 0, canvas.width, canvas.height)
+   'generateInitialsImage: failed pixel
