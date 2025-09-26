@@ -5,10 +5,13 @@ ENV NODE_OPTIONS="--max_old_space_size=400"
 ENV NODE_ENV=production
 WORKDIR /app
 
+# 安装 git（解决构建警告）
+RUN apk add --no-cache git
+
 # 复制 package 文件
 COPY package.json package-lock.json* ./
 
-# 安装依赖（简化步骤）
+# 安装依赖
 RUN npm install --include=dev --legacy-peer-deps
 
 # 复制源码
@@ -17,8 +20,9 @@ COPY . .
 # 生成必要的配置文件
 RUN npx svelte-kit sync
 
-# 构建前端
-RUN node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build
+# 构建前端（增加重试机制）
+RUN node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build || \
+    (echo "第一次构建失败，重试..." && node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build)
 
 # 后端 Python 环境
 FROM python:3.11-alpine
