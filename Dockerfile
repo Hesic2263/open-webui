@@ -1,4 +1,4 @@
-# Open WebUI - 完全安全版本（无 heredoc 语法）
+# Open WebUI - 修复版本冲突
 FROM node:20-alpine AS frontend-builder
 
 # 设置内存限制
@@ -12,13 +12,13 @@ RUN apk add --no-cache git python3 make g++
 # 复制 package 文件
 COPY package.json package-lock.json ./
 
-# 安装依赖
-RUN npm ci --legacy-peer-deps
+# 🔧 修复：使用 npm install 而不是 npm ci（避免版本冲突）
+RUN npm install --legacy-peer-deps
 
 # 复制源码
 COPY . .
 
-# 🔧 直接创建修复文件（避免 heredoc）
+# 创建修复文件
 RUN mkdir -p src/lib/utils && \
     echo "// 安全简化版本 - 修复构建错误" > src/lib/utils/index.ts && \
     echo "import { v4 as uuidv4 } from 'uuid';" >> src/lib/utils/index.ts && \
