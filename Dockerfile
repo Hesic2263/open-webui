@@ -1,49 +1,36 @@
-# 轻量级 Open WebUI - 专注于内存优化 + PDF.js修复
-FROM node:20-alpine AS frontend-builder
+FROM node:18-alpine AS builder
 
-# 设置内存限制
-ENV NODE_OPTIONS="--max_old_space_size=400"
-ENV NODE_ENV=production
 WORKDIR /app
 
-# 安装必要的系统工具
-RUN apk add --no-cache git python3 make g++
-
-# 复制 package 文件
+# 复制 package.json 和安装依赖
 COPY package.json package-lock.json* ./
+RUN npm ci --only=production --force
 
-# 分步骤安装依赖
-RUN npm install --production --legacy-peer-deps
-RUN npm install --include=dev --legacy-peer-deps
-
-# 复制源码
+# 复制源码并构建
 COPY . .
+RUN npm run build
 
-# 🔧 直接修复有问题的文件
-RUN echo "修复PDF导入问题..."
-RUN sed -i '/pdfjs-dist.build.pdf.worker.mjs?url/d' src/lib/utils/index.ts
-RUN sed -i '/import.*pdfWorkerUrl/a const pdfWorkerUrl = "";' src/lib/utils/index.ts
+# 生产镜像
+FROM node:18-alpine AS production
 
-# 生成必要的配置文件
-RUN npx svelte-kit sync
-
-# 分阶段构建
-RUN node --max_old_space_size=400 ./node_modules/vite/bin/vite.js build --mode production
-
-# 后端 Python 环境
-FROM python:3.11-alpine
 WORKDIR /app
 
-RUN apk add --no-cache build-base python3-dev
-COPY ./backend/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
-COPY --from=frontend-builder /app/build ./build
-COPY ./backend ./backend
-RUN mkdir -p /app/backend/data
+# 安装生产依赖
+COPY package.json ./
+RUN npm ci --only=production --force
 
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV WEBUI_SECRET_KEY="lightweight-secure-key-2024"
+# 复制构建结果
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+
+# 创建非root用户
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S openwebui -u 1001
+
+# 更改文件所有权
+RUN chown -R openwebui:nodejs /app
+USER openwebui
 
 EXPOSE 8080
-CMD ["python3", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+CMD ["node", "build"]
