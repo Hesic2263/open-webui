@@ -92,6 +92,11 @@
         }
         
         .active { border-left: 4px solid var(--primary); }
+        
+        .message-user { background: #e3f2fd; margin: 10px 0; padding: 10px; border-radius: 8px; }
+        .message-ai { background: #f3e5f5; margin: 10px 0; padding: 10px; border-radius: 8px; }
+        
+        .loading { opacity: 0.6; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -117,6 +122,7 @@
         <div class="main-content">
             <div id="novelView">
                 <h3>选择或创建一部小说开始创作</h3>
+                <p>欢迎使用深墨小说创作平台！请先设置世界观，然后创建您的小说。</p>
             </div>
             
             <div id="conversationView" style="display: none;">
@@ -125,8 +131,9 @@
                 
                 <div>
                     <textarea id="userInput" placeholder="输入您的故事内容或指令..." rows="3"></textarea>
-                    <button onclick="sendToAI()">发送给AI续写</button>
+                    <button onclick="sendToAI()" id="sendButton">发送给AI续写</button>
                     <button class="secondary" onclick="saveConversation()">保存对话</button>
+                    <button class="secondary" onclick="backToNovelList()">返回小说列表</button>
                 </div>
             </div>
         </div>
@@ -144,165 +151,4 @@
         function init() {
             loadData();
             renderNovels();
-            const savedWorldview = localStorage.getItem('novelWorldview');
-            if (savedWorldview) {
-                document.getElementById('worldviewInput').value = savedWorldview;
-                appData.worldview = savedWorldview;
-            }
-        }
-
-        // 保存世界观
-        function saveWorldview() {
-            const worldview = document.getElementById('worldviewInput').value;
-            appData.worldview = worldview;
-            localStorage.setItem('novelWorldview', worldview);
-            saveData();
-            alert('世界观已保存！');
-        }
-
-        // 创建新小说
-        function createNovel() {
-            const title = document.getElementById('novelTitle').value || `小说${appData.novels.length + 1}`;
-            const novel = {
-                id: Date.now(),
-                title: title,
-                conversations: [],
-                createdAt: new Date().toISOString()
-            };
-            
-            appData.novels.push(novel);
-            saveData();
-            renderNovels();
-            openNovel(novel.id);
-            
-            document.getElementById('novelTitle').value = '';
-        }
-
-        // 打开小说
-        function openNovel(novelId) {
-            const novel = appData.novels.find(n => n.id === novelId);
-            if (!novel) return;
-            
-            appData.currentNovel = novel;
-            
-            document.getElementById('novelView').style.display = 'none';
-            document.getElementById('conversationView').style.display = 'block';
-            document.getElementById('currentNovelTitle').textContent = novel.title;
-            
-            renderConversation(novel);
-        }
-
-        // 渲染对话
-        function renderConversation(novel) {
-            const historyDiv = document.getElementById('conversationHistory');
-            historyDiv.innerHTML = '';
-            
-            novel.conversations.forEach(conv => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 8px;">
-                        <strong>您:</strong> ${conv.user}
-                        <br>
-                        <strong>AI:</strong> ${conv.assistant}
-                        <small style="color: #666; float: right;">${new Date(conv.timestamp).toLocaleString()}</small>
-                    </div>
-                `;
-                historyDiv.appendChild(div);
-            });
-            
-            historyDiv.scrollTop = historyDiv.scrollHeight;
-        }
-
-        // 发送给AI
-        async function sendToAI() {
-            const userInput = document.getElementById('userInput').value;
-            if (!userInput) return alert('请输入内容');
-            
-            if (!appData.worldview) return alert('请先设置世界观');
-            if (!appData.currentNovel) return alert('请先选择小说');
-            
-            // 显示用户消息
-            const userMessage = {
-                user: userInput,
-                assistant: '',
-                timestamp: new Date().toISOString()
-            };
-            
-            appData.currentNovel.conversations.push(userMessage);
-            renderConversation(appData.currentNovel);
-            
-            // 构建提示词
-            const prompt = `请基于以下世界观继续创作故事：
-            
-核心世界观：${appData.worldview}
-
-当前故事背景：${appData.currentNovel.title}
-
-之前的对话内容：
-${appData.currentNovel.conversations.slice(-3).map(c => `用户: ${c.user}\nAI: ${c.assistant}`).join('\n')}
-
-当前用户输入：${userInput}
-
-请以连贯的故事风格继续创作：`;
-
-            try {
-                // 这里需要替换为您的DeepSeek API密钥
-                const apiKey = 'sk-00296fd434994fd2807c728bc2408acc';
-                
-                const response = await fetch('https://api.deepseek.com/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': Bearer ${apiKey}
-                    },
-                    body: JSON.stringify({
-                        model: "deepseek-chat",
-                        messages: [{role: "user", content: prompt}],
-                        max_tokens: 1000,
-                        temperature: 0.7
-                    })
-                });
-                
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
-                
-                // 更新AI回复
-                userMessage.assistant = aiResponse;
-                saveData();
-                renderConversation(appData.currentNovel);
-                
-                document.getElementById('userInput').value = '';
-                
-            } catch (error) {
-                console.error('AI请求失败:', error);
-                userMessage.assistant = '抱歉，AI服务暂时不可用，请检查API密钥和网络连接。';
-                renderConversation(appData.currentNovel);
-            }
-        }
-
-        // 保存对话
-        function saveConversation() {
-            saveData();
-            alert('对话已保存！');
-        }
-
-        // 数据持久化
-        function saveData() {
-            localStorage.setItem('novelAppData', JSON.stringify(appData));
-        }
-
-        function loadData() {
-            const saved = localStorage.getItem('novelAppData');
-            if (saved) {
-                appData = JSON.parse(saved);
-            }
-        }
-
-        function renderNovels() {
-            const listDiv = document.getElementById('novelsList');
-            listDiv.innerHTML = '';
-            
-            appData.novels.forEach(novel => {
-                const div = document.createElement('div');
-                div.className = `novel-item ${appData.currentNovel?.id === novel.id ? 'active' : ''}`;
-                div.innerHTML = `
+            const savedWorldview
